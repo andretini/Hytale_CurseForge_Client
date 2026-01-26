@@ -42,7 +42,7 @@ class CurseForgeClient:
         return {
             "x-api-key": self.api_key,
             "Accept": "application/json",
-            "User-Agent": "HytaleCF-CLI/1.0",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
         }
 
     def request(self, endpoint: str, params: dict = None) -> dict:
@@ -62,7 +62,9 @@ class CurseForgeClient:
                 return json.loads(response.read())
         except HTTPError as e:
             if e.code == 403:
-                raise Exception("Invalid API key or access denied")
+                raise Exception("Invalid API key or access denied (403)")
+            elif e.code == 429:
+                raise Exception("Rate limited - please wait a moment and try again")
             raise Exception(f"HTTP Error {e.code}: {e.reason}")
         except URLError as e:
             raise Exception(f"Connection Error: {e.reason}")

@@ -202,8 +202,12 @@ def _do_search(query: str, category: str, limit: int):
     """Search implementation."""
     client, config = get_client_and_config()
 
-    with out.status(f"Searching for '{query}'"):
-        results, total = client.search(query, category=category, page_size=limit)
+    try:
+        with out.status(f"Searching for '{query}'"):
+            results, total = client.search(query, category=category, page_size=limit)
+    except Exception as e:
+        out.error(f"Search failed: {e}")
+        return
 
     if not results:
         out.warning(f"No results found for '{query}'")
