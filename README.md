@@ -13,11 +13,14 @@ The CLI provides an APT-style interface with minimal dependencies, perfect for D
 ### Quick Start
 
 ```bash
-# Install CLI only (minimal deps)
-pip install -r requirements-cli.txt
+# No dependencies required! Just run directly:
+./hytale-cf --help
 
-# Or install with pip
+# Or install with pip (zero deps)
 pip install -e .
+
+# Optional: Install click+rich for prettier output
+pip install -e ".[pretty]"
 
 # Configure
 hytale-cf config --api-key YOUR_CURSEFORGE_API_KEY
@@ -127,15 +130,13 @@ The manager automatically detects the resource type and installs to the correct 
 
 ## Requirements
 
-**CLI (minimal):**
-- Python 3.8+
-- click
-- rich
+**CLI:**
+- Python 3.8+ (no external dependencies!)
+- Optional: click + rich for prettier output
 
 **GUI:**
 - Python 3.8+
 - PySide6
-- requests
 
 **Future TUI:**
 - textual (planned)

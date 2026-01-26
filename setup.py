@@ -10,11 +10,9 @@ setup(
     url="https://github.com/rederyk/Hytale_CurseForge_CLI",
     packages=find_packages(),
     python_requires=">=3.8",
-    install_requires=[
-        "click>=8.0",
-        "rich>=13.0",
-    ],
+    install_requires=[],  # No required dependencies! Uses stdlib only
     extras_require={
+        "pretty": ["click>=8.0", "rich>=13.0"],  # Enhanced CLI output
         "gui": ["PySide6>=6.0"],
         "tui": ["textual>=0.40"],
     },
