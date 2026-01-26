@@ -411,6 +411,7 @@ def _do_update(skip_confirm: bool):
                         'name': info.get('name', mod_id),
                         'current': info.get('version', 'N/A'),
                         'new': latest.get('displayName', 'N/A'),
+                        'old_filename': info.get('filename'),
                     })
             except Exception:
                 pass
@@ -436,7 +437,11 @@ def _do_update(skip_confirm: bool):
     for upd in updates_available:
         out.print(f"\nUpdating {upd['name']}...")
         try:
-            result = client.install_mod(upd['mod_id'], config.game_path)
+            result = client.install_mod(
+                upd['mod_id'],
+                config.game_path,
+                old_filename=upd.get('old_filename')
+            )
             config.add_installed(upd['mod_id'], result)
             out.success(f"Updated {upd['name']}")
         except Exception as e:

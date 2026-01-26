@@ -164,9 +164,11 @@ class CurseForgeClient:
         mod_id: int,
         game_path: str,
         progress_callback=None,
+        old_filename: str = None,
     ) -> dict:
         """
         Download and install a mod.
+        If old_filename is provided, removes the old file after successful download.
         Returns info about the installed file.
         """
         mod_info = self.get_mod(mod_id)
@@ -186,6 +188,12 @@ class CurseForgeClient:
 
         # Download
         self.download_file(str(download_url), str(dest_path), progress_callback)
+
+        # Remove old file if updating and filename changed
+        if old_filename and old_filename != filename:
+            old_path = install_dir / old_filename
+            if old_path.exists():
+                os.remove(old_path)
 
         # If it's a world (zip), extract it
         if class_id == 9184 and filename.endswith('.zip'):
