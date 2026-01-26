@@ -1,59 +1,163 @@
 # Hytale Mod Manager
 
-A custom PySide6 client for managing Hytale resources via the CurseForge API. This tool automates the organization of mods and worlds.
+A tool for managing Hytale resources via the CurseForge API. Available as both a GUI (PySide6) and an APT-style CLI for servers.
 
 This manager was built because CurseForge provides no native support for Hytale on Linux.
 
 ---
 
-## 🚀 Setup Guide
+## CLI Usage (Recommended for servers)
+
+The CLI provides an APT-style interface with minimal dependencies, perfect for Debian servers.
+
+### Quick Start
+
+```bash
+# Install CLI only (minimal deps)
+pip install -r requirements-cli.txt
+
+# Or install with pip
+pip install -e .
+
+# Configure
+hytale-cf config --api-key YOUR_CURSEFORGE_API_KEY
+hytale-cf config --game-path /path/to/hytale
+
+# Search for mods
+hytale-cf search magic
+
+# Install a mod
+hytale-cf install 12345
+
+# List installed mods
+hytale-cf list
+
+# Update all mods
+hytale-cf update
+```
+
+### CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `hytale-cf search <query>` | Search for mods, worlds, prefabs |
+| `hytale-cf install <id>` | Install a mod by ID |
+| `hytale-cf remove <id>` | Remove an installed mod |
+| `hytale-cf list` | List installed mods |
+| `hytale-cf info <id>` | Show mod details |
+| `hytale-cf update` | Update all mods |
+| `hytale-cf config` | Configure API key and game path |
+
+### CLI Options
+
+```bash
+# Search in specific category
+hytale-cf search -c worlds "adventure"
+hytale-cf search -c mods -n 20 "magic"
+
+# Skip confirmations (for scripts)
+hytale-cf install -y 12345
+hytale-cf remove -y 12345
+hytale-cf update -y
+
+# Verbose output
+hytale-cf list -v
+```
+
+---
+
+## GUI Usage
+
+For desktop users who prefer a graphical interface.
+
+### Installation
+
+```bash
+# Install GUI dependencies
+pip install -r requirements.txt
+
+# Run the GUI
+python3 main.py
+```
+
+---
+
+## Setup Guide
 
 ### 1. Obtaining a CurseForge API Key
+
 CurseForge requires an API Key to fetch mod data.
-1.  Go to the [CurseForge for Studios](https://console.curseforge.com/#/) portal.
-2.  Log in with your CurseForge account.
-3.  Set the organization name.
-4.  Once logged in, click on the **API Keys** menu from the sidebar.
-5.  Copy the Api Key
-6.  In the Hytale Mod Manager, click **🔑 Set API Key** in the sidebar and paste your key.
+
+1. Go to the [CurseForge for Studios](https://console.curseforge.com/#/) portal.
+2. Log in with your CurseForge account.
+3. Set the organization name.
+4. Once logged in, click on the **API Keys** menu from the sidebar.
+5. Copy the API Key.
+
+**CLI:** Run `hytale-cf config --api-key YOUR_KEY`
+**GUI:** Click "Set API Key" in the sidebar and paste your key.
 
 ### 2. Finding your Hytale Folder Path
-The manager needs to know where Hytale is installed to sort your files correctly.
 
-#### **If using the Hytale Launcher:**
-1.  Open the **Hytale Launcher**.
-2.  Go to **Settings** (usually a gear icon ⚙️).
-3.  Look for **"Open Directory"**.
+The manager needs to know where Hytale is installed.
 
-### 3. Applying the Path
-1.  Open the Manager and click **⚙ Game Folder** at the bottom of the sidebar.
-2.  Navigate to the path found in the step above.
-3.  Ensure you select the **root Hytale folder** (the one containing the `UserData` folder).
+**If using the Hytale Launcher:**
+1. Open the **Hytale Launcher**.
+2. Go to **Settings** (gear icon).
+3. Look for **"Open Directory"**.
 
----
-
-## 📂 How it Works (Auto-Sorting)
-The manager automatically detects the resource type and appends the correct subfolder:
-* **Mods:** Sorted into `UserData/Mods`
-* **Worlds:** Automatically unzipped into `UserData/Saves`
+**CLI:** Run `hytale-cf config --game-path /path/to/hytale`
+**GUI:** Click "Game Folder" in the sidebar.
 
 ---
 
-## 🛠 Installation & Execution
+## How it Works (Auto-Sorting)
 
-For this step you must have python3 installed, specifically 3.12.3
+The manager automatically detects the resource type and installs to the correct subfolder:
 
-Follow these steps in your terminal to get the manager running:
+| Type | Destination |
+|------|-------------|
+| Mods | `UserData/Mods` |
+| Worlds | `UserData/Saves` (auto-extracted) |
+| Prefabs | `prefabs` |
+| Bootstrap | `bootstrap` |
+| Translations | `translations` |
 
-1. **Create a virtual environment:**
-   ```bash
-   python3 -m venv venv
-2. **Activate the environment:**
-   ```bash
-     venv/bin/activate
-3. **Install dependencies:**
-   ```bash
-    pip install -r requirements.txt
-4. **Run the program:**
-   ```bash
-    python3 main.py
+---
+
+## Requirements
+
+**CLI (minimal):**
+- Python 3.8+
+- click
+- rich
+
+**GUI:**
+- Python 3.8+
+- PySide6
+- requests
+
+**Future TUI:**
+- textual (planned)
+
+---
+
+## Project Structure
+
+```
+.
+├── hytale-cf           # CLI entry point
+├── cli/                # CLI implementation
+├── curseforge/         # API client (shared)
+├── tui/                # Future TUI (textual)
+├── ui/                 # GUI (PySide6)
+├── main.py             # GUI entry point
+├── requirements.txt    # GUI dependencies
+└── requirements-cli.txt # CLI dependencies
+```
+
+---
+
+## License
+
+MIT License

@@ -1,0 +1,3 @@
+# CLI dependencies - minimal for Debian servers
+click>=8.0
+rich>=13.0
