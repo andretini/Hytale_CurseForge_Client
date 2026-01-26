@@ -1,59 +1,247 @@
-# Hytale Mod Manager
+# Hytale CurseForge CLI
 
-A custom PySide6 client for managing Hytale resources via the CurseForge API. This tool automates the organization of mods and worlds.
+An APT-style command-line tool for managing Hytale mods via the CurseForge API. Designed for Linux servers with minimal dependencies.
 
-This manager was built because CurseForge provides no native support for Hytale on Linux.
+Fork of [andretini/Hytale_CurseForge_Client](https://github.com/andretini/Hytale_CurseForge_Client) - adds a server-friendly CLI interface.
 
 ---
 
-## 🚀 Setup Guide
+## Features
+
+- **Zero dependencies** - Works with Python stdlib only (click/rich optional for prettier output)
+- **APT-style commands** - Familiar syntax: `search`, `install`, `remove`, `update`, `list`
+- **Cron compatible** - Use `-y` flag for non-interactive automation
+- **Auto-sorting** - Automatically installs mods/worlds/prefabs to correct folders
+- **Update management** - Checks for updates and removes old files automatically
+- **Config persistence** - API key and settings stored in `~/.config/hytale-cf/`
+
+---
+
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/rederyk/Hytale_CurseForge_CLI.git
+cd Hytale_CurseForge_CLI
+
+# No dependencies required! Just run:
+./hytale-cf --help
+
+# Configure (interactive - recommended)
+./hytale-cf config --api-key-prompt
+./hytale-cf config --game-path /path/to/hytale
+
+# Search and install mods
+./hytale-cf search magic
+./hytale-cf install 1423494
+
+# List installed mods
+./hytale-cf list
+
+# Update all mods
+./hytale-cf update
+```
+
+### Optional: Pretty Output
+
+```bash
+# Install click + rich for colored tables and progress bars
+pip install click rich
+
+# Or via setup.py
+pip install -e ".[pretty]"
+```
+
+---
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `hytale-cf search <query>` | Search for mods, worlds, prefabs |
+| `hytale-cf install <id>` | Install a mod by ID |
+| `hytale-cf remove <id>` | Remove an installed mod |
+| `hytale-cf list` | List installed mods |
+| `hytale-cf info <id>` | Show detailed mod information |
+| `hytale-cf update` | Check and install updates for all mods |
+| `hytale-cf config` | Configure API key and game path |
+
+### Command Options
+
+```bash
+# Search options
+hytale-cf search -c worlds "adventure"    # Search specific category
+hytale-cf search -c mods -n 20 "magic"    # Limit results
+# Categories: mods, worlds, prefabs, bootstrap, translations
+
+# Skip confirmations (for scripts/cron)
+hytale-cf install -y 12345
+hytale-cf remove -y 12345
+hytale-cf update -y
+
+# Verbose output
+hytale-cf list -v
+
+# Config options
+hytale-cf config --show                   # Show current config
+hytale-cf config --api-key-prompt         # Set API key interactively
+hytale-cf config --api-key 'KEY'          # Set API key (use single quotes!)
+hytale-cf config --game-path /path        # Set game directory
+```
+
+---
+
+## Automation (Cron)
+
+The CLI is fully compatible with cron for automated updates:
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add daily update at 4:00 AM
+0 4 * * * /path/to/hytale-cf update -y >> /var/log/hytale-cf.log 2>&1
+```
+
+**Note:** The `-y` flag skips all confirmations for non-interactive use.
+
+---
+
+## Setup Guide
 
 ### 1. Obtaining a CurseForge API Key
-CurseForge requires an API Key to fetch mod data.
-1.  Go to the [CurseForge for Studios](https://console.curseforge.com/#/) portal.
-2.  Log in with your CurseForge account.
-3.  Set the organization name.
-4.  Once logged in, click on the **API Keys** menu from the sidebar.
-5.  Copy the Api Key
-6.  In the Hytale Mod Manager, click **🔑 Set API Key** in the sidebar and paste your key.
 
-### 2. Finding your Hytale Folder Path
-The manager needs to know where Hytale is installed to sort your files correctly.
+1. Go to [CurseForge for Studios](https://console.curseforge.com/#/)
+2. Log in and set organization name
+3. Click **API Keys** in the sidebar
+4. Copy your API key
 
-#### **If using the Hytale Launcher:**
-1.  Open the **Hytale Launcher**.
-2.  Go to **Settings** (usually a gear icon ⚙️).
-3.  Look for **"Open Directory"**.
+```bash
+# Set API key (interactive - recommended)
+./hytale-cf config --api-key-prompt
 
-### 3. Applying the Path
-1.  Open the Manager and click **⚙ Game Folder** at the bottom of the sidebar.
-2.  Navigate to the path found in the step above.
-3.  Ensure you select the **root Hytale folder** (the one containing the `UserData` folder).
+# Or with single quotes (important for keys with $ characters!)
+./hytale-cf config --api-key '$2a$10$YOUR_KEY_HERE'
+```
+
+### 2. Setting the Game Path
+
+```bash
+./hytale-cf config --game-path /path/to/hytale
+```
+
+The path should point to your Hytale installation root (containing `UserData` folder).
+
+### 3. Verify Configuration
+
+```bash
+./hytale-cf config --show
+```
 
 ---
 
-## 📂 How it Works (Auto-Sorting)
-The manager automatically detects the resource type and appends the correct subfolder:
-* **Mods:** Sorted into `UserData/Mods`
-* **Worlds:** Automatically unzipped into `UserData/Saves`
+## How It Works
+
+### Auto-Sorting
+
+The CLI automatically detects resource types and installs to the correct subfolder:
+
+| Type | Destination |
+|------|-------------|
+| Mods | `UserData/Mods` |
+| Worlds | `UserData/Saves` (auto-extracted from zip) |
+| Prefabs | `prefabs` |
+| Bootstrap | `bootstrap` |
+| Translations | `translations` |
+
+### Update Behavior
+
+When updating mods:
+1. Checks if newer version is available on CurseForge
+2. Downloads the new file
+3. **Automatically removes the old file** (if filename changed)
+4. Updates tracking in config
 
 ---
 
-## 🛠 Installation & Execution
+## Configuration
 
-For this step you must have python3 installed, specifically 3.12.3
+Settings are stored in `~/.config/hytale-cf/config.json`:
 
-Follow these steps in your terminal to get the manager running:
+```json
+{
+  "api_key": "$2a$10$...",
+  "game_path": "/path/to/hytale",
+  "installed": {
+    "1423494": {
+      "mod_id": 1423494,
+      "name": "EyeSpy",
+      "filename": "EyeSpy-2026.1.20-5708.jar",
+      "version": "EyeSpy-2026.1.20-5708.jar",
+      "file_id": 7491939,
+      "class_id": 9137,
+      "path": "/path/to/hytale/UserData/Mods/EyeSpy-2026.1.20-5708.jar"
+    }
+  }
+}
+```
 
-1. **Create a virtual environment:**
-   ```bash
-   python3 -m venv venv
-2. **Activate the environment:**
-   ```bash
-     venv/bin/activate
-3. **Install dependencies:**
-   ```bash
-    pip install -r requirements.txt
-4. **Run the program:**
-   ```bash
-    python3 main.py
+---
+
+## Requirements
+
+**CLI (minimal):**
+- Python 3.8+
+- No external dependencies (uses stdlib only)
+
+**CLI (pretty output):**
+- click >= 8.0
+- rich >= 13.0
+
+**GUI (original):**
+- Python 3.8+
+- PySide6
+
+---
+
+## Project Structure
+
+```
+.
+├── hytale-cf             # CLI entry point (executable)
+├── cli/                  # CLI implementation
+│   ├── main.py           # Commands (click/argparse)
+│   └── output.py         # Output helpers (rich fallback)
+├── curseforge/           # API client (shared)
+│   ├── client.py         # CurseForge API wrapper
+│   └── config.py         # Configuration management
+├── ui/                   # GUI (PySide6) - original
+├── tui/                  # Future TUI (textual) - planned
+├── setup.py              # pip install support
+├── requirements.txt      # GUI dependencies
+└── requirements-cli.txt  # CLI optional dependencies
+```
+
+---
+
+## GUI Usage (Original)
+
+The original GUI is still available for desktop users:
+
+```bash
+pip install -r requirements.txt
+python3 main.py
+```
+
+---
+
+## License
+
+MIT License
+
+---
+
+## Credits
+
+- Original project: [andretini/Hytale_CurseForge_Client](https://github.com/andretini/Hytale_CurseForge_Client)
+- CLI fork: [rederyk/Hytale_CurseForge_CLI](https://github.com/rederyk/Hytale_CurseForge_CLI)

@@ -1,0 +1,4 @@
+# Optional CLI dependencies for enhanced output
+# The CLI works without these (uses argparse + plain text fallback)
+click>=8.0   # Better CLI parsing (optional)
+rich>=13.0   # Colored output and tables (optional)

@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+"""
+Hytale CurseForge CLI - APT-style package manager for Hytale mods.
+
+Usage:
+    hytale-cf search <query>       Search for mods
+    hytale-cf install <mod_id>     Install a mod
+    hytale-cf remove <mod_id>      Remove a mod
+    hytale-cf list                 List installed mods
+    hytale-cf info <mod_id>        Show mod details
+    hytale-cf update               Update all mods
+    hytale-cf config               Configure API key and game path
+"""
+import sys
+import os
+
+# Add parent dir to path for local development
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from cli import main
+
+if __name__ == '__main__':
+    main()
