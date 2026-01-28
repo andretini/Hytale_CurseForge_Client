@@ -12,7 +12,9 @@ class UniversalCard(QFrame):
             subtitle,
             icon_url=None,
             is_installed=False,
+            has_update=False,
             install_callback=None,
+            update_callback=None,
             delete_callback=None,
             click_callback=None,
             icon_char="📦",
@@ -64,14 +66,28 @@ class UniversalCard(QFrame):
             status_layout = QHBoxLayout()
             status_layout.setSpacing(6)
 
-            check_lbl = QLabel("✔")
-            check_lbl.setObjectName("SuccessLabel")
-            text_inst_lbl = QLabel("INSTALLED")
-            text_inst_lbl.setObjectName("SuccessLabel")
+            if has_update:
+                update_lbl = QLabel("UPDATE AVAILABLE")
+                update_lbl.setObjectName("WarningLabel")
+                update_lbl.setStyleSheet("color: #FFC107; font-weight: bold; font-size: 11px;")
+                status_layout.addWidget(update_lbl)
+            else:
+                check_lbl = QLabel("✔")
+                check_lbl.setObjectName("SuccessLabel")
+                text_inst_lbl = QLabel("INSTALLED")
+                text_inst_lbl.setObjectName("SuccessLabel")
+                status_layout.addWidget(check_lbl)
+                status_layout.addWidget(text_inst_lbl)
 
-            status_layout.addWidget(check_lbl)
-            status_layout.addWidget(text_inst_lbl)
             layout.addLayout(status_layout)
+
+            if has_update and update_callback:
+                update_btn = QPushButton("⬆ Update")
+                update_btn.setFixedSize(100, 36)
+                update_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+                update_btn.setObjectName("ActionBtn")
+                update_btn.clicked.connect(lambda: update_callback(update_btn))
+                layout.addWidget(update_btn)
 
             if delete_callback:
                 delete_btn = QPushButton("🗑 Uninstall")
@@ -97,11 +113,14 @@ class UniversalCard(QFrame):
             pass
 
     def mouseReleaseEvent(self, event):
-        child = self.childAt(event.position().toPoint())
-        if (
-            event.button() == Qt.MouseButton.LeftButton
-            and self.click_callback
-            and not isinstance(child, QPushButton)
-        ):
-            self.click_callback()
-        super().mouseReleaseEvent(event)
+        try:
+            child = self.childAt(event.position().toPoint())
+            if (
+                event.button() == Qt.MouseButton.LeftButton
+                and self.click_callback
+                and not isinstance(child, QPushButton)
+            ):
+                self.click_callback()
+            super().mouseReleaseEvent(event)
+        except RuntimeError:
+            pass

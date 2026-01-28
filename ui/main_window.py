@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
         )
         self.stack = QStackedWidget()
         self.search_page = SearchPage(self.client)
-        self.installed_page = InstalledPage()
+        self.installed_page = InstalledPage(self.client)
 
         layout.addWidget(self.sidebar)
         self.stack.addWidget(self.search_page)
@@ -61,6 +61,9 @@ class MainWindow(QMainWindow):
 
         if hasattr(self, 'search_page'):
             self.search_page.update_client(self.client)
+
+        if hasattr(self, 'installed_page'):
+            self.installed_page.update_client(self.client)
 
         self.init_worker = InitWorker(self.client)
         self.init_worker.finished.connect(lambda msg: print(f"API: {msg}"))

@@ -1,5 +1,7 @@
+import json
 import os
 import math
+import shutil
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QScrollArea, QMessageBox, QComboBox, QFrame, QSpinBox
@@ -9,6 +11,7 @@ from ui.workers import SearchWorker, DownloadWorker
 from ui.common.maps import PATH_MAP
 from ui.components.universal_card import UniversalCard
 from ui.layouts.mod_dialog import ModDetailsDialog
+from registry import ModRegistry
 
 
 class SearchPage(QWidget):
@@ -17,6 +20,7 @@ class SearchPage(QWidget):
         self.client = client
         self.game_path = ""
         self.category = "mods"
+        self.registry = ModRegistry("")
 
         self.current_index = 0
         self.page_size = 20
@@ -214,35 +218,89 @@ class SearchPage(QWidget):
         self.scroll.verticalScrollBar().setValue(0)
 
         for mod in mods:
-            relative_path = self.find_local_file(mod['name'], mod.get('classId'))
-            is_inst = relative_path is not None
+            mod_id = mod['id']
+            reg_entry = self.registry.get(mod_id)
+            relative_path = None
+
+            if reg_entry:
+                subfolder = PATH_MAP.get(mod.get('classId'), "UserData/Mods")
+                candidate = os.path.join(subfolder, reg_entry.get('file_name', ''))
+                full = os.path.normpath(os.path.join(self.game_path, candidate))
+                if os.path.exists(full):
+                    relative_path = candidate
+            else:
+                relative_path = self.find_local_file(mod['name'], mod.get('classId'))
+                if relative_path:
+                    local_filename = os.path.basename(relative_path)
+                    owner_id, _ = self.registry.find_by_filename(local_filename)
+                    if owner_id is not None and str(owner_id) != str(mod_id):
+                        relative_path = None
+                    else:
+                        self.registry.add(
+                            mod_id=mod_id,
+                            mod_name=mod['name'],
+                            file_name=local_filename,
+                            file_id=None,
+                            file_date='',
+                            class_id=mod.get('classId'),
+                        )
+                        reg_entry = self.registry.get(mod_id)
+
+            is_inst = reg_entry is not None or relative_path is not None
+
+            has_update = False
+            if is_inst and reg_entry:
+                latest_files = mod.get('latestFiles', [])
+                if latest_files:
+                    latest_files.sort(key=lambda x: x.get('fileDate', ''), reverse=True)
+                    latest_file_id = latest_files[0].get('id')
+                    if latest_file_id and reg_entry.get('file_id') != latest_file_id:
+                        has_update = True
+
+            delete_path = relative_path
+            if not delete_path and reg_entry:
+                subfolder = PATH_MAP.get(mod.get('classId'), "UserData/Mods")
+                delete_path = os.path.join(subfolder, reg_entry.get('file_name', ''))
 
             card = UniversalCard(
                 title=mod['name'],
                 subtitle=f"by {mod.get('authors', [{'name': 'Unknown'}])[0]['name']}",
                 icon_url=mod.get('logo', {}).get('thumbnailUrl'),
                 is_installed=is_inst,
+                has_update=has_update,
                 install_callback=lambda btn, m=mod: self.install(m, btn),
-                delete_callback=lambda p=relative_path: self.delete(p),
-                click_callback=lambda m=mod: self.show_mod_details(m)
+                update_callback=(lambda btn, m=mod: self.update_mod(m, btn)) if has_update else None,
+                delete_callback=lambda p=delete_path, mid=mod_id: self.delete(p, mod_id=mid),
+                click_callback=lambda m=mod, upd=has_update: self.show_mod_details(m, has_update=upd)
             )
             self.layout_content.addWidget(card)
 
-    def show_mod_details(self, mod_data):
+    def show_mod_details(self, mod_data, has_update=False):
+        reg_entry = self.registry.get(mod_data['id'])
         local_filename = self.find_local_file(mod_data['name'])
-        is_installed = local_filename is not None
+        is_installed = reg_entry is not None or local_filename is not None
 
         def remove_handler():
             current_file = self.find_local_file(mod_data['name'])
-            if current_file: return self.delete(current_file, confirm=True)
+            if not current_file and reg_entry:
+                subfolder = PATH_MAP.get(mod_data.get('classId'), "UserData/Mods")
+                current_file = os.path.join(subfolder, reg_entry.get('file_name', ''))
+            if current_file:
+                return self.delete(current_file, confirm=True, mod_id=mod_data['id'])
             return False
 
         def install_handler(btn, on_finish):
             self.install(mod_data, btn, on_finish)
 
+        def update_handler(btn, on_finish):
+            self.update_mod(mod_data, btn, on_finish_ui=on_finish)
+
         dialog = ModDetailsDialog(
             mod_data, is_installed=is_installed,
-            install_callback=install_handler, remove_callback=remove_handler, parent=self
+            has_update=has_update,
+            install_callback=install_handler,
+            update_callback=update_handler,
+            remove_callback=remove_handler, parent=self
         )
         dialog.exec()
         self.execute_search()
@@ -276,7 +334,7 @@ class SearchPage(QWidget):
 
         return None
 
-    def delete(self, relative_path, confirm=True):
+    def delete(self, relative_path, confirm=True, mod_id=None):
         if not self.game_path or not relative_path: return False
 
         full_path = os.path.normpath(os.path.join(self.game_path, relative_path))
@@ -291,7 +349,12 @@ class SearchPage(QWidget):
 
         try:
             if os.path.exists(full_path):
-                os.remove(full_path)
+                if os.path.isdir(full_path):
+                    shutil.rmtree(full_path)
+                else:
+                    os.remove(full_path)
+            if mod_id:
+                self.registry.remove(mod_id)
             self.execute_search()
             return True
         except Exception as e:
@@ -317,16 +380,51 @@ class SearchPage(QWidget):
 
         self.dl_worker = DownloadWorker(self.client, mod['id'], target_dir, is_zip)
 
-        def on_done(filename):
+        def on_done(result_json):
+            result = json.loads(result_json)
+            self.registry.add(
+                mod_id=mod['id'],
+                mod_name=mod['name'],
+                file_name=result.get('file_name', ''),
+                file_id=result.get('file_id'),
+                file_date=result.get('file_date', ''),
+                class_id=class_id,
+            )
             if on_finish_ui:
                 on_finish_ui(True)
             else:
                 self.execute_search()
 
+        def on_error(msg):
+            QMessageBox.critical(self, "Download Error", msg)
+            if hasattr(btn, "setText"):
+                btn.setText("⬇ Install")
+                btn.setEnabled(True)
+
         self.dl_worker.finished.connect(on_done)
+        self.dl_worker.error.connect(on_error)
         self.dl_worker.start()
 
         return None
+
+    def update_mod(self, mod, btn, on_finish_ui=None):
+        reg_entry = self.registry.get(mod['id'])
+        if reg_entry:
+            old_name = reg_entry.get('file_name', '')
+            class_id = mod.get('classId') or reg_entry.get('class_id')
+            subfolder = PATH_MAP.get(class_id, "UserData/Mods")
+            old_path = os.path.normpath(os.path.join(self.game_path, subfolder, old_name))
+            if os.path.exists(old_path):
+                if os.path.isdir(old_path):
+                    shutil.rmtree(old_path)
+                else:
+                    os.remove(old_path)
+
+        if hasattr(btn, "setText"):
+            btn.setText("Updating...")
+            btn.setEnabled(False)
+
+        self.install(mod, btn, on_finish_ui=on_finish_ui)
 
     def clear_list(self):
         while self.layout_content.count():
@@ -335,3 +433,4 @@ class SearchPage(QWidget):
 
     def set_game_path(self, path):
         self.game_path = path
+        self.registry = ModRegistry(path)

@@ -1,3 +1,4 @@
+import json
 import os
 import zipfile
 
@@ -53,6 +54,12 @@ class DownloadWorker(QThread):
 
             self.client.download_file(file_data['url'], zip_path)
 
+            result = {
+                "file_name": file_data['name'],
+                "file_id": file_data.get('file_id'),
+                "file_date": file_data.get('file_date', ''),
+            }
+
             if self.is_world and zip_path.endswith('.zip'):
                 extract_path = os.path.join(self.target_dir, file_data['name'].replace('.zip', ''))
 
@@ -60,10 +67,46 @@ class DownloadWorker(QThread):
                     zip_ref.extractall(extract_path)
 
                 os.remove(zip_path)
-                self.finished.emit(f"Extracted to {os.path.basename(extract_path)}")
-            else:
-                self.finished.emit(file_data['name'])
+                result["file_name"] = os.path.basename(extract_path)
 
+            self.finished.emit(json.dumps(result))
+
+        except Exception as e:
+            self.error.emit(str(e))
+
+
+class UpdateCheckWorker(QThread):
+    finished = Signal(str)
+    progress = Signal(int, int)
+    error = Signal(str)
+
+    def __init__(self, client, registry):
+        super().__init__()
+        self.client = client
+        self.registry = registry
+
+    def run(self):
+        try:
+            all_entries = self.registry.get_all()
+            total = len(all_entries)
+            updates = {}
+
+            for i, (mod_id_str, entry) in enumerate(all_entries.items()):
+                self.progress.emit(i + 1, total)
+                try:
+                    mod_data = self.client.get_mod(int(mod_id_str))
+                    if not mod_data:
+                        continue
+                    latest_files = mod_data.get('latestFiles', [])
+                    if latest_files:
+                        latest_files.sort(key=lambda x: x.get('fileDate', ''), reverse=True)
+                        latest_file_id = latest_files[0].get('id')
+                        if latest_file_id and entry.get('file_id') != latest_file_id:
+                            updates[mod_id_str] = mod_data
+                except Exception as e:
+                    print(f"[UPDATE CHECK] Failed for mod {mod_id_str}: {e}")
+
+            self.finished.emit(json.dumps(updates))
         except Exception as e:
             self.error.emit(str(e))
 

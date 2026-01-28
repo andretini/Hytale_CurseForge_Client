@@ -7,7 +7,8 @@ from ui.workers.image_worker import ImageWorker
 
 
 class ModDetailsDialog(QDialog):
-    def __init__(self, mod_data, is_installed=False, install_callback=None, remove_callback=None, parent=None):
+    def __init__(self, mod_data, is_installed=False, has_update=False,
+                 install_callback=None, update_callback=None, remove_callback=None, parent=None):
         super().__init__(None)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setWindowTitle(mod_data['name'])
@@ -15,8 +16,10 @@ class ModDetailsDialog(QDialog):
 
         self.mod_data = mod_data
         self.install_callback = install_callback
+        self.update_callback = update_callback
         self.remove_callback = remove_callback
         self.is_installed = is_installed
+        self.has_update = has_update
 
         layout = QVBoxLayout(self)
         layout.setSpacing(0)
@@ -234,6 +237,13 @@ class ModDetailsDialog(QDialog):
         self.action_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.action_btn.clicked.connect(self.on_action_click)
 
+        self.update_btn = QPushButton("⬆ Update")
+        self.update_btn.setFixedSize(120, 40)
+        self.update_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.update_btn.setObjectName("ActionBtn")
+        self.update_btn.clicked.connect(self.on_update_click)
+        self.update_btn.setVisible(self.has_update and self.is_installed)
+
         close_btn = QPushButton("Close")
         close_btn.setFixedSize(100, 40)
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -241,6 +251,7 @@ class ModDetailsDialog(QDialog):
         close_btn.clicked.connect(self.close)
 
         footer.addWidget(self.action_btn)
+        footer.addWidget(self.update_btn)
         footer.addStretch()
         footer.addWidget(close_btn)
         layout.addLayout(footer)
@@ -269,6 +280,21 @@ class ModDetailsDialog(QDialog):
                 self.action_btn.setText("Downloading...")
                 self.action_btn.setEnabled(False)
                 self.install_callback(self.action_btn, self.on_install_finished)
+
+    def on_update_click(self):
+        if self.update_callback:
+            self.update_btn.setText("Updating...")
+            self.update_btn.setEnabled(False)
+            self.update_callback(self.update_btn, self.on_update_finished)
+
+    def on_update_finished(self, success=True):
+        if success:
+            self.has_update = False
+            self.update_btn.setVisible(False)
+        else:
+            self.update_btn.setText("⬆ Update")
+            self.update_btn.setEnabled(True)
+        self.update_action_button()
 
     def on_install_finished(self, success=True):
         if success: self.is_installed = True
