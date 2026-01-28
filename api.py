@@ -93,13 +93,37 @@ class ModClient:
         except Exception as e:
             print(f"Discovery failed: {e}")
 
+    def get_mod(self, mod_id):
+        res = self.request(f"/mods/{mod_id}")
+        return res.get('data', {})
+
     def get_download_url(self, mod_id):
         res = self.request(f"/mods/{mod_id}/files")
         files = res.get('data', [])
         files.sort(key=lambda x: x['fileDate'], reverse=True)
-        if len(files) > 0:
-            return {"url": files[0]['downloadUrl'], "name": files[0]['fileName']}
-        raise Exception("No files found")
+        if not files:
+            raise Exception("No files found")
+
+        latest = files[0]
+        url = latest.get('downloadUrl')
+
+        if not url:
+            file_id = latest['id']
+            try:
+                fallback = self.request(f"/mods/{mod_id}/files/{file_id}/download-url")
+                url = fallback.get('data')
+            except Exception:
+                url = (
+                    f"https://edge.forgecdn.net/files/"
+                    f"{str(file_id)[:4]}/{str(file_id)[4:]}/{latest['fileName']}"
+                )
+
+        return {
+            "url": url,
+            "name": latest['fileName'],
+            "file_id": latest['id'],
+            "file_date": latest.get('fileDate', ''),
+        }
 
     def download_file(self, url, dest_path):
         print(f"DEBUG: Downloading {url}")
