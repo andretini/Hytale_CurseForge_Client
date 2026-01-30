@@ -79,7 +79,7 @@ jobs:
 
       - name: Install Runtime and SDK
         if: matrix.os == 'ubuntu-latest'
-        run: sudo flatpak install -y flathub org.gnome.Platform//46 org.gnome.Sdk//46
+        run: sudo flatpak install -y flathub org.gnome.Platform//49 org.gnome.Sdk//49
 
       - name: Build Flatpak
         if: matrix.os == 'ubuntu-latest'
@@ -112,33 +112,41 @@ jobs:
         run: |
           mkdir -p $APP_NAME.app/Contents/MacOS
           mkdir -p $APP_NAME.app/Contents/Resources
+          
+          # 1. Copy the Executable
           cp target/release/$APP_NAME $APP_NAME.app/Contents/MacOS/
+          
+          # 2. Copy the Icon (Ensure icon.icns is in your repo root!)
+          cp icon.icns $APP_NAME.app/Contents/Resources/
+          
           chmod +x $APP_NAME.app/Contents/MacOS/$APP_NAME
 
-      - name: Add Info.plist
-        if: matrix.os == 'macos-latest'
-        run: |
-          cat > $APP_NAME.app/Contents/Info.plist <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleName</key>
-              <string>Hytale Mod Manager</string>
-              <key>CFBundleExecutable</key>
-              <string>HytaleModManager</string>
-              <key>CFBundleIdentifier</key>
-              <string>com.hytale.modmanager</string>
-              <key>CFBundleVersion</key>
-              <string>0.1.0</string>
-              <key>CFBundlePackageType</key>
-              <string>APPL</string>
-              <key>LSMinimumSystemVersion</key>
-              <string>10.13</string>
-          </dict>
-          </plist>
-          EOF
+          - name: Add Info.plist
+            if: matrix.os == 'macos-latest'
+            run: |
+              cat > $APP_NAME.app/Contents/Info.plist <<EOF
+              <?xml version="1.0" encoding="UTF-8"?>
+              <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+                "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+              <plist version="1.0">
+              <dict>
+                  <key>CFBundleName</key>
+                  <string>Hytale Mod Manager</string>
+                  <key>CFBundleExecutable</key>
+                  <string>HytaleModManager</string>
+                  <key>CFBundleIdentifier</key>
+                  <string>com.hytale.modmanager</string>
+                  <key>CFBundleVersion</key>
+                  <string>0.1.2</string>
+                  <key>CFBundlePackageType</key>
+                  <string>APPL</string>
+                  <key>CFBundleIconFile</key>
+                  <string>icon.icns</string>
+                  <key>LSMinimumSystemVersion</key>
+                  <string>10.13</string>
+              </dict>
+              </plist>
+              EOF
 
       - name: Sign App Bundle
         if: matrix.os == 'macos-latest'
@@ -169,7 +177,7 @@ jobs:
           merge-multiple: true
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: release-artifacts/*
           draft: false
