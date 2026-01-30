@@ -13,6 +13,21 @@
   ],
   "modules": [
     {
+      "name": "libxdo",
+      "buildsystem": "simple",
+      "build-commands": [
+        "make INSTALL_MAN=0 PREFIX=/app",
+        "make install INSTALL_MAN=0 PREFIX=/app"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/jordansissel/xdotool.git",
+          "tag": "v3.20211022.1"
+        }
+      ]
+    },
+    {
       "name": "hytale-mod-manager",
       "buildsystem": "simple",
       "build-options": {
