@@ -76,7 +76,7 @@ jobs:
 
       - name: Install Runtime and SDK
         if: matrix.os == 'ubuntu-latest'
-        run: sudo flatpak install -y flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
+        run: sudo flatpak install -y flathub org.gnome.Platform//46 org.gnome.Sdk//46
 
       - name: Build Flatpak
         if: matrix.os == 'ubuntu-latest'
