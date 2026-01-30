@@ -23,7 +23,7 @@
       },
       "build-commands": [
         "curl https://sh.rustup.rs -sSf | sh -s -- -y",
-        ". $HOME/.cargo/env",
+        ". $CARGO_HOME/env",
         "cargo build --release",
         "install -Dm755 target/release/HytaleModManager /app/bin/HytaleModManager"
       ],
