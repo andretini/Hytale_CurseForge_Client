@@ -1,0 +1,37 @@
+{
+  "app-id": "com.hytale.modmanager",
+  "runtime": "org.freedesktop.Platform",
+  "runtime-version": "23.08",
+  "sdk": "org.freedesktop.Sdk",
+  "command": "HytaleModManager",
+  "finish-args": [
+    "--share=network",
+    "--socket=x11",
+    "--socket=wayland",
+    "--device=dri",
+    "--filesystem=home"
+  ],
+  "modules": [
+    {
+      "name": "hytale-mod-manager",
+      "buildsystem": "simple",
+      "build-options": {
+        "env": {
+          "CARGO_HOME": "/run/build/hytale-mod-manager/cargo"
+        }
+      },
+      "build-commands": [
+        "curl https://sh.rustup.rs -sSf | sh -s -- -y",
+        "source $HOME/.cargo/env",
+        "cargo build --release",
+        "install -Dm755 target/release/HytaleModManager /app/bin/HytaleModManager"
+      ],
+      "sources": [
+        {
+          "type": "dir",
+          "path": "../"
+        }
+      ]
+    }
+  ]
+}
