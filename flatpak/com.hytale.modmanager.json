@@ -16,13 +16,14 @@
       "name": "hytale-mod-manager",
       "buildsystem": "simple",
       "build-options": {
+        "build-args": ["--share=network"],
         "env": {
           "CARGO_HOME": "/run/build/hytale-mod-manager/cargo"
         }
       },
       "build-commands": [
         "curl https://sh.rustup.rs -sSf | sh -s -- -y",
-        "source $HOME/.cargo/env",
+        ". $HOME/.cargo/env",
         "cargo build --release",
         "install -Dm755 target/release/HytaleModManager /app/bin/HytaleModManager"
       ],
