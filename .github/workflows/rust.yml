@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  APP_NAME: HytaleModManager
 
 jobs:
   build:
@@ -24,8 +25,8 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      # ---------------- LINUX ----------------
-      - name: Install Linux system dependencies
+      # ---------------- LINUX SYSTEM DEPS ----------------
+      - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt update
@@ -43,10 +44,15 @@ jobs:
             libappindicator3-dev \
             librsvg2-dev \
             libxdo-dev \
-            patchelf
+            patchelf \
+            flatpak \
+            flatpak-builder
 
+      # ---------------- BUILD RUST ----------------
       - name: Build Release
         run: cargo build --release
+
+      # ================= LINUX =================
 
       - name: Build AppImage
         if: matrix.os == 'ubuntu-latest'
@@ -61,35 +67,70 @@ jobs:
           name: linux-appimage
           path: target/appimage/*.AppImage
 
-      # ---------- Flatpak (basic template) ----------
-      - name: Install Flatpak tools
+      # ----- Flatpak -----
+      - name: Add Flathub repo
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt install -y flatpak flatpak-builder
+        run: flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
       - name: Build Flatpak
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          flatpak-builder build-dir flatpak/com.example.HytaleManager.json --force-clean
+        run: flatpak-builder build-dir flatpak/com.hytale.modmanager.json --force-clean
 
-      # ---------------- WINDOWS ----------------
-      - name: Upload Windows exe
+      - name: Export Flatpak bundle
+        if: matrix.os == 'ubuntu-latest'
+        run: flatpak build-bundle build-dir HytaleModManager.flatpak com.hytale.modmanager
+
+      - name: Upload Flatpak
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-flatpak
+          path: HytaleModManager.flatpak
+
+      # ================= WINDOWS =================
+
+      - name: Upload Windows EXE
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
           name: windows-exe
           path: target/release/*.exe
 
-      # ---------------- MACOS ----------------
+      # ================= MACOS =================
+
       - name: Create macOS App Bundle
         if: matrix.os == 'macos-latest'
         run: |
-          mkdir -p HytaleModManager.app/Contents/MacOS
-          cp target/release/hytale-mod-manager HytaleModManager.app/Contents/MacOS/
+          mkdir -p $APP_NAME.app/Contents/MacOS
+          mkdir -p $APP_NAME.app/Contents/Resources
+          cp target/release/$APP_NAME $APP_NAME.app/Contents/MacOS/
+
+      - name: Add Info.plist
+        if: matrix.os == 'macos-latest'
+        run: |
+          cat > $APP_NAME.app/Contents/Info.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleName</key>
+              <string>Hytale Mod Manager</string>
+              <key>CFBundleExecutable</key>
+              <string>HytaleModManager</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.hytale.modmanager</string>
+              <key>CFBundleVersion</key>
+              <string>0.1.0</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+          </dict>
+          </plist>
+          EOF
 
       - name: Create DMG
         if: matrix.os == 'macos-latest'
-        run: |
-          hdiutil create -volname HytaleModManager -srcfolder HytaleModManager.app -ov -format UDZO HytaleModManager.dmg
+        run: hdiutil create -volname HytaleModManager -srcfolder HytaleModManager.app -ov -format UDZO HytaleModManager.dmg
 
       - name: Upload DMG
         if: matrix.os == 'macos-latest'
