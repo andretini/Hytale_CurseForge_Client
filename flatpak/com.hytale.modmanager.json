@@ -33,7 +33,10 @@
       "build-options": {
         "build-args": ["--share=network"],
         "env": {
-          "CARGO_HOME": "/run/build/hytale-mod-manager/cargo"
+          "CARGO_HOME": "/run/build/hytale-mod-manager/cargo",
+          "LIBRARY_PATH": "/app/lib",
+          "LD_LIBRARY_PATH": "/app/lib",
+          "PKG_CONFIG_PATH": "/app/lib/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig"
         }
       },
       "build-commands": [
